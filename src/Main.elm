@@ -9,12 +9,11 @@ main = Browser.sandbox { init = init, update = update, view = view }
 
 type SharkType
   = UnitType
-  | SumType SharkType SharkType
+  | SumType (List SharkType)
 
 type SharkValue
   = UnitValue
-  | LeftValue SharkValue
-  | RightValue SharkValue
+  | SumValue { index : Int, value : SharkValue }
 
 type alias Model = 
   { sharkType: SharkType
@@ -24,8 +23,12 @@ init : Model
 init =
   { sharkType =
       SumType
-        (SumType (SumType UnitType UnitType) UnitType)
-        UnitType
+        [ SumType [UnitType, UnitType, UnitType, UnitType]
+        , SumType
+          [ SumType [UnitType, UnitType]
+          , SumType [UnitType, UnitType, UnitType]
+          ]
+        ]
   }
 
 type Msg
@@ -43,31 +46,40 @@ enumerateValues : SharkType -> List SharkValue
 enumerateValues sharkType =
   case sharkType of
     UnitType -> [UnitValue]
-    SumType left right
-      -> List.map LeftValue (enumerateValues left)
-      ++ List.map RightValue (enumerateValues right)
+    SumType types ->
+      let allValuesForTypes = List.map enumerateValues types
+          indexedValuesForTypes = List.indexedMap (\index values -> List.map (\value -> SumValue { index = index, value = value }) values) allValuesForTypes
+      in List.concat indexedValuesForTypes
 
 innerViewSharkValue : SharkValue -> List (Html Msg)
 innerViewSharkValue sharkValue =
   case sharkValue of
     UnitValue -> [spacedSpan "V"]
-    LeftValue value -> [spacedSpan "L"] ++ innerViewSharkValue value
-    RightValue value -> [spacedSpan "R"] ++ innerViewSharkValue value
+    SumValue { index, value } -> [spacedSpan (String.fromInt index ++ ":(")] ++ innerViewSharkValue value ++ [spacedSpan ")"]
 
 viewIndexedSharkValue : Int -> SharkValue -> Html Msg
 viewIndexedSharkValue index sharkValue = div [] ([spacedSpan (String.fromInt index ++ ":")] ++ innerViewSharkValue sharkValue)
 
-viewSharkType : SharkType -> List (Html Msg)
-viewSharkType sharkType =
+sharkTypeToStrings : SharkType -> List String
+sharkTypeToStrings sharkType =
   case sharkType of
-    UnitType -> [spacedSpan "U"]
-    SumType left right -> [spacedSpan "("] ++ viewSharkType left ++ [spacedSpan "+"] ++ viewSharkType right ++ [spacedSpan ")"]
+    UnitType -> ["\u{1D7D9}"] -- MATHEMATICAL DOUBLE-STRUCK DIGIT ONE (U+1D7D9)
+    SumType types ->
+      let typeStrings : List (List String)
+          typeStrings = List.map sharkTypeToStrings types
+      in ["("] ++ List.concat (List.intersperse ["+"] typeStrings) ++ [")"]
 
 view : Model -> Html Msg
 view model =
-  div [ style "margin" "8px" ] 
-    ( [ div [ style "margin-bottom" "8px" ] ([spacedSpan "Type:"] ++ viewSharkType model.sharkType)
-      , div [ style "margin-bottom" "8px" ] [text "Values:"]
-      ]
-    ++ List.indexedMap viewIndexedSharkValue (enumerateValues model.sharkType)
-    )
+  let
+    typeHtml = List.map spacedSpan (sharkTypeToStrings model.sharkType)
+    allValues = enumerateValues model.sharkType
+    lengthAllValues = List.length allValues
+    allValuesHtml = List.indexedMap viewIndexedSharkValue allValues
+  in
+    div [ style "margin" "8px" ] 
+      ( [ div [ style "margin-bottom" "8px" ] ([spacedSpan "Type:"] ++ typeHtml)
+        , div [ style "margin-bottom" "8px" ] ([spacedSpan "Values:", spacedSpan (String.fromInt lengthAllValues)])
+        ]
+      ++ allValuesHtml
+      )
