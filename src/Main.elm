@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Browser
+import Html
 import Html exposing (Html, button, div, text, input, span)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -69,14 +70,26 @@ viewIndexedSharkValue index sharkValue =
     ++ innerViewSharkValue sharkValue
     )
 
+unitTypeString = "\u{1D7D9}" -- MATHEMATICAL DOUBLE-STRUCK DIGIT ONE (U+1D7D9)
+
 sharkTypeToStrings : SharkType -> List String
 sharkTypeToStrings sharkType =
   case sharkType of
-    UnitType -> ["\u{1D7D9}"] -- MATHEMATICAL DOUBLE-STRUCK DIGIT ONE (U+1D7D9)
+    UnitType -> [unitTypeString]
     SumType types ->
       let typeStrings : List (List String)
           typeStrings = List.map sharkTypeToStrings types
       in ["("] ++ List.concat (List.intersperse ["+"] typeStrings) ++ [")"]
+
+sharkTypeVerticalView : SharkType -> Html Msg
+sharkTypeVerticalView sharkType =
+  case sharkType of
+    UnitType -> text unitTypeString
+    SumType types ->
+      (  Html.ul []
+          ( List.map (\t -> Html.li [] [sharkTypeVerticalView t]) types
+          )
+      )
 
 view : Model -> Html Msg
 view model =
@@ -88,7 +101,8 @@ view model =
   in
     div [ style "margin" "8px" ] 
       ( [ div [ style "margin-bottom" "8px" ] ([spacedSpan "Type:"] ++ typeHtml)
+        , sharkTypeVerticalView model.sharkType
         , div [ style "margin-bottom" "8px" ] ([spacedSpan "Values:", spacedSpan (String.fromInt lengthAllValues)])
         ]
-      ++ allValuesHtml
+        ++ allValuesHtml
       )
