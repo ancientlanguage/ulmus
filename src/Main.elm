@@ -60,7 +60,7 @@ enumerateValues sharkType =
 innerViewSharkValue : SharkValue -> List (Html Msg)
 innerViewSharkValue sharkValue =
   case sharkValue of
-    UnitValue -> [spacedSpan "\u{25C7}"] -- 'WHITE DIAMOND' (U+25C7)
+    UnitValue -> [spacedSpan unitTypeValue]
     SumValue { choiceIndex, value } -> [spacedSpan (String.fromInt choiceIndex ++ ".")] ++ innerViewSharkValue value
 
 viewIndexedSharkValue : Int -> SharkValue -> Html Msg
@@ -71,6 +71,7 @@ viewIndexedSharkValue index sharkValue =
     )
 
 unitTypeString = "\u{1D7D9}" -- MATHEMATICAL DOUBLE-STRUCK DIGIT ONE (U+1D7D9)
+unitTypeValue = "\u{25C7}" -- 'WHITE DIAMOND' (U+25C7)
 
 sharkTypeToStrings : SharkType -> List String
 sharkTypeToStrings sharkType =
