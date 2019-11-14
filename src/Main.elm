@@ -87,8 +87,15 @@ sharkTypeVerticalView sharkType =
   case sharkType of
     UnitType -> text unitTypeString
     SumType types ->
-      (  Html.ul []
-          ( List.map (\t -> Html.li [] [sharkTypeVerticalView t]) types
+      let
+        makeItem index t =
+          div [style "margin-left" "20px"]
+            [ span [style "margin-right" "8px"] [text (String.fromInt index ++ ".")]
+            , sharkTypeVerticalView t
+            ]
+      in
+      ( div []
+          ( List.indexedMap makeItem types
           )
       )
 
