@@ -11,9 +11,13 @@ type SharkType
   = UnitType
   | SumType (List SharkType)
 
+type SharkTypePath
+  = Here
+  | Deeper { choiceIndex : Int, path : SharkTypePath }
+
 type SharkValue
   = UnitValue
-  | SumValue { index : Int, value : SharkValue }
+  | SumValue { choiceIndex : Int, value : SharkValue }
 
 type alias Model = 
   { sharkType: SharkType
@@ -40,7 +44,8 @@ update msg model =
     Noop ->
       model
 
-spacedSpan txt = span [style "margin-left" "2px", style "margin-right" "2px"] [text txt]
+spacedSpanStyles = [style "margin-left" "2px", style "margin-right" "2px"]
+spacedSpan txt = span spacedSpanStyles [text txt]
 
 enumerateValues : SharkType -> List SharkValue
 enumerateValues sharkType =
@@ -48,17 +53,21 @@ enumerateValues sharkType =
     UnitType -> [UnitValue]
     SumType types ->
       let allValuesForTypes = List.map enumerateValues types
-          indexedValuesForTypes = List.indexedMap (\index values -> List.map (\value -> SumValue { index = index, value = value }) values) allValuesForTypes
+          indexedValuesForTypes = List.indexedMap (\index values -> List.map (\value -> SumValue { choiceIndex = index, value = value }) values) allValuesForTypes
       in List.concat indexedValuesForTypes
 
 innerViewSharkValue : SharkValue -> List (Html Msg)
 innerViewSharkValue sharkValue =
   case sharkValue of
-    UnitValue -> [spacedSpan "V"]
-    SumValue { index, value } -> [spacedSpan (String.fromInt index ++ ":(")] ++ innerViewSharkValue value ++ [spacedSpan ")"]
+    UnitValue -> [spacedSpan "\u{25C7}"] -- 'WHITE DIAMOND' (U+25C7)
+    SumValue { choiceIndex, value } -> [spacedSpan (String.fromInt choiceIndex ++ ".")] ++ innerViewSharkValue value
 
 viewIndexedSharkValue : Int -> SharkValue -> Html Msg
-viewIndexedSharkValue index sharkValue = div [] ([spacedSpan (String.fromInt index ++ ":")] ++ innerViewSharkValue sharkValue)
+viewIndexedSharkValue index sharkValue =
+  div []
+    (  [span (spacedSpanStyles ++ [style "font-weight" "bold"]) [text (String.fromInt index ++ ":")]]
+    ++ innerViewSharkValue sharkValue
+    )
 
 sharkTypeToStrings : SharkType -> List String
 sharkTypeToStrings sharkType =
